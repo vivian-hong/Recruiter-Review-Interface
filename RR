@@ -1,0 +1,336 @@
+#!/usr/bin/env python
+
+from Tkinter import *
+import tkFileDialog
+import os
+import Merge
+import Overview
+import Summary
+import JobProg
+import Growth
+import Format
+
+# needs more optomization 
+# updated sucess statements needed
+# ability to pick and choose reports to generate is necessary 
+
+class Page(Frame):
+	def __init__(self, *args, **kwargs):
+		Frame.__init__(self, *args, **kwargs)
+	def show(self):
+		self.lift()
+
+class Home(Page):
+	def __init__(self, *args, **kwargs):
+		Page.__init__(self, *args, **kwargs)
+		label = Label(self, text="Welcome to RecruiterReview! \n~\nThis program allows you to generate reports about recruiter performance based on Workable Activity Reports. \n --- \n Merge Activity Reports: merge separate activity reports from the same period of time \n Get Recruiter Review: get the interview/sendout review for an activity report", wraplength=400)
+		label.pack(side="top", fill="both", expand=True)
+
+class ListMerge(Page):
+	def __init__(self, *args, **kwargs):
+		Page.__init__(self, *args, **kwargs)
+		label = Label(self, text="\nMerge two or more Workable Activity Reports\n", font='Verdana 18')
+		label.pack(side="top", fill="both", expand=False)
+
+		self.start = Button(self, text="Browse Files", command=self.numFiles)
+		self.start.pack(side="top", expand=False)
+
+	def numFiles(self):
+
+		label = Label(self, text="\nNumber of files: ")
+		label.pack()
+
+		# need to implement error handling of non int entry
+		# and bound checking
+		self.entry = Entry(self, bd = 5)
+		self.entry.pack()
+
+		self.button = Button(self, text="Submit", width=10, command=self.browse)
+		self.button.pack()
+
+	def browse(self):
+
+		# check if digit
+		if not (str(self.entry.get()).isdigit()):
+			top = Toplevel()
+			top.wm_geometry("200x100")
+			top.title("Usage Error")
+
+			msg = Message(top, text="Please enter a number.")
+			msg.pack()
+
+			button = Button(top, text="Dismiss", command=top.destroy)
+			button.pack()
+			return 0
+
+		if int(self.entry.get()) <= 1:
+			top = Toplevel()
+			top.wm_geometry("200x100")
+			top.title("Usage Error")
+
+			msg = Message(top, text="Two or more files are required.")
+			msg.pack()
+
+			button = Button(top, text="Dismiss", command=top.destroy)
+			button.pack()
+			return 
+
+		counter = 0
+		self.input_files = tkFileDialog.askopenfilenames(parent=root,title='Choose a file')
+		if not self.input_files:
+			return 0
+		while counter < int(self.entry.get()) - 1:
+			self.input_files += tkFileDialog.askopenfilenames(parent=root,title='Choose a file')
+			if not self.input_files:
+				return 0
+			counter += 1
+		self.input_files = ' '.join(self.input_files)
+		files = self.input_files.split(' ')
+		counter  = 0
+		global final #make part of self
+		final = []
+		to_print = ""
+		while counter < int(self.entry.get()):
+			# add property where files dont have to be in local folder
+			# do this by removing User/vivianhong and adding ~ before "/"
+			remove = files[counter].split('/')
+			currentFile = "~/"
+			for i in range (3, len(remove) - 1):
+				currentFile += remove[i] + "/"
+			currentFile += remove[len(remove) - 1]
+	  
+			if not (os.path.isfile(files[counter])):
+				top = Toplevel()
+				top.wm_geometry("200x100")
+				top.title("Usage Error")
+
+				msg = Message(top, text="File does not exist.")
+				msg.pack()
+
+				button = Button(top, text="Dismiss", command=top.destroy)
+				button.pack()
+				return 0
+
+			if not (remove[len(remove) - 1].endswith('.csv')):
+				top = Toplevel()
+				top.wm_geometry("200x100")
+				top.title("Usage Error")
+
+				msg = Message(top, text="Please only use csv files.")
+				msg.pack()
+
+				button = Button(top, text="Dismiss", command=top.destroy)
+				button.pack()
+				return 0
+			final.append(currentFile)
+			to_print += remove[len(remove) - 1] + ' '
+			counter += 1
+		self.entry.delete(0, 'end') #remove
+		print_files = Label(self, text=to_print, wraplength = 400)
+		print_files.pack(side="top", fill="both", expand=False)
+		self.button = Button(self, text="Next", width=10, command=self.newFilename)
+		self.button.pack(side="top", expand=False)
+
+	def newFilename(self):
+
+		print_directions = Label(self, text="\nPlease enter name of final merged file using the format activity_report_YYYY-MM-DD_YYYY-MM-DD.csv", wraplength=400)
+		print_directions.pack(side="top", fill="both", expand=False)
+		
+		label = Label(self, text="\nNew filename: ")
+		label.pack()
+
+		self.entry = Entry(self, bd = 5, width = 35)
+		self.entry.pack()
+
+		self.entry.insert(0, "activity_report_YYYY-MM-DD_YYYY-MM-DD.csv")
+
+		self.button = Button(self, text="Submit", width=10, command=self.mergeLists)
+		self.button.pack()
+
+	def mergeLists(self):
+		while True:
+			filename = str(self.entry.get())
+			test = filename.split("_")
+			if len(test) == 4 and test[0] == "activity" and test[1] == "report":
+				initSplit = test[3].split(".")
+				if len(initSplit) == 2 and initSplit[1] == "csv":
+					fSplit = test[2].split("-")
+					sSplit = initSplit[0].split("-")
+					if len(fSplit) == 3 and len(sSplit) == 3:
+						counter = 0
+						if fSplit[0].isdigit() and len(fSplit[0]) == 4 and sSplit[0].isdigit() and len(sSplit[0]) == 4:
+							for x in range (1,3):
+								if fSplit[x].isdigit() and len(fSplit[x]) == 2:
+									counter += 1
+								if sSplit[x].isdigit() and len(sSplit[x]) == 2:
+									counter +=1
+							if counter == 4:
+								break
+			else:
+				top = Toplevel()
+				top.wm_geometry("200x100")
+				top.title("Usage Error")
+
+				msg = Message(top, text="Please make sure to follow the format guidelines.")
+				msg.pack()
+
+				button = Button(top, text="Dismiss", command=top.destroy)
+				button.pack()
+				return 0
+		if Merge.merge(filename, final) == 0:
+			#print "BLAH"
+			top = Toplevel()
+			top.wm_geometry("300x200")
+			top.title("Usage Error")
+
+			msg = Message(top, text="Please only use files with these categories in this order: \n Name | Activity | Candidate | Job | Creation time")
+			msg.pack()
+
+			button = Button(top, text="Dismiss", command=top.destroy)
+			button.pack()
+			return 0
+		#os.system("echo " + str(self.entry.get()) + " | ./ListMerge " + final)
+		# doesn't account for incorrect file name, num arguments, nonexistent file, etc. 
+		self.entry.delete(0, 'end')
+		print_success = Label(self, text="Success! Merged list will be in the new file that you named!", wraplength = 400)
+		print_success.pack(side="top", fill="both", expand=True)
+
+
+
+class GetReview(Page):
+	def __init__(self, *args, **kwargs):
+		Page.__init__(self, *args, **kwargs)
+		label = Label(self, text="\nGenerate: \n1. Interview/send-out report\n 2. Summary report (optional)\n 3. Job progress report (optional)\n 4. Growth report (optional)\n", wraplength=400, font='Verdana 18')
+		label.pack(side="top", fill="both", expand=False)
+
+		self.summary = IntVar()
+
+		chk_sum = Checkbutton(self, text="Summary", variable=self.summary)
+		chk_sum.pack(side="top")
+
+		self.jobprog = IntVar()
+
+		chk_job = Checkbutton(self, text="Job Progress", variable=self.jobprog)
+		chk_job.pack(side="top")
+
+		self.growth = IntVar()
+
+		chk_gro = Checkbutton(self, text="Growth", variable=self.growth)
+		chk_gro.pack(side="top")
+
+		self.start = Button(self, text="Browse Files", command=self.execute)
+		self.start.pack(side="top", expand=False)
+
+	def execute(self):
+
+		input_file = tkFileDialog.askopenfilenames(parent=root,title='Choose a file')
+		if not input_file:
+			return 0
+
+		input_file = ' '.join(input_file)
+		remove = input_file.split('/')
+		# add csv check and file merge functionality
+		if not (remove[len(remove) - 1].endswith('.csv')):
+				top = Toplevel()
+				top.wm_geometry("200x100")
+				top.title("Usage Error")
+
+				msg = Message(top, text="Please only use csv files.")
+				msg.pack()
+
+				button = Button(top, text="Dismiss", command=top.destroy)
+				button.pack()
+				return 0
+
+		final = "~/"
+		for i in range (3, len(remove) - 1):
+			final += remove[i] + "/"
+		final += remove[len(remove) - 1]
+		if not (os.path.isfile(input_file)):
+			top = Toplevel()
+			top.wm_geometry("200x100")
+			top.title("Usage Error")
+
+			msg = Message(top, text="File does not exist.")
+			msg.pack()
+
+			button = Button(top, text="Dismiss", command=top.destroy)
+			button.pack()
+			return 0
+
+		while True:
+			filename = remove[len(remove) - 1]
+			test = filename.split("_")
+			if len(test) == 4 and test[0] == "activity" and test[1] == "report":
+				initSplit = test[3].split(".")
+				if len(initSplit) == 2 and initSplit[1] == "csv":
+					fSplit = test[2].split("-")
+					sSplit = initSplit[0].split("-")
+					if len(fSplit) == 3 and len(sSplit) == 3:
+						counter = 0
+						if fSplit[0].isdigit() and len(fSplit[0]) == 4 and sSplit[0].isdigit() and len(sSplit[0]) == 4:
+							for x in range (1,3):
+								if fSplit[x].isdigit() and len(fSplit[x]) == 2:
+									counter += 1
+								if sSplit[x].isdigit() and len(sSplit[x]) == 2:
+									counter +=1
+							if counter == 4:
+								break
+			else:
+				top = Toplevel()
+				top.wm_geometry("200x100")
+				top.title("Usage Error")
+
+				msg = Message(top, text="Please make sure activity report follows the format guidelines.")
+				msg.pack()
+
+				button = Button(top, text="Dismiss", command=top.destroy)
+				button.pack()
+				return 0
+		today = Overview.getData(final)
+		
+		if self.summary.get() == 1:
+			Summary.getSummary(final, today)
+		if self.jobprog.get() == 1:
+			JobProg.getJobProg(final, today)
+		if self.growth.get() == 1:
+			Growth.getGrowth(final, today)
+		Overview.overviewFooter(today, final)
+
+		print_success = Label(self, text="Success! Check out the evaluations in WorkableOverview.csv, WorkableSummary.csv, WorkableJobProgress.csv, and WorkableGrowth.csv. Formated files are in their .xlsx counterparts!", wraplength = 400)
+		print_success.pack(side="top", fill="both", expand=True)
+
+
+class MainView(Frame):
+	def __init__(self, master=None, *args, **kwargs):
+		Frame.__init__(self, master, *args, **kwargs)
+		master.title("Recruiter Review")
+		p1 = Home(self)
+		p2 = ListMerge(self)
+		p3 = GetReview(self)
+
+		buttonframe = Frame(self)
+		container = Frame(self)
+		buttonframe.pack(side="top", fill="x", expand=False)
+		container.pack(side="top", fill="both", expand=True)
+
+		p1.place(in_=container, x=0, y=0, relwidth=1, relheight=1)
+		p2.place(in_=container, x=0, y=0, relwidth=1, relheight=1)
+		p3.place(in_=container, x=0, y=0, relwidth=1, relheight=1)
+
+		b1 = Button(buttonframe, text="Home", command=p1.lift)
+		b2 = Button(buttonframe, text="Merge Activity Reports", command=p2.lift)
+		b3 = Button(buttonframe, text="Get Recruiter Review", command=p3.lift)
+
+		b1.pack(side="left")
+		b2.pack(side="left")
+		b3.pack(side="left")
+
+		p1.show()
+
+if __name__ == "__main__":
+	root = Tk()
+	main = MainView(root)
+	main.pack(side="top", fill="both", expand=True)
+	root.wm_geometry("800x700")
+	root.mainloop()
